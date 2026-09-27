@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: Cynthia Rey <cynthia@cynthia.dev>
+# SPDX-License-Identifier: 0BSD
+--- a/zmij-js/src/lib.rs
++++ b/zmij-js/src/lib.rs
+@@ -272,7 +272,7 @@ trait FloatTraits: traits::Float {
+ 
+ impl FloatTraits for f32 {
+     // Upstream uses -4..=6.
+-    const FIXED_DEC_EXP: RangeInclusive<i32> = -6..=12;
++    const FIXED_DEC_EXP: RangeInclusive<i32> = -6..=20;
+ 
+     const NUM_BITS: i32 = 32;
+     const IMPLICIT_BIT: u32 = 1 << Self::NUM_SIG_BITS;
+@@ -322,7 +322,7 @@ impl FloatTraits for f32 {
+ 
+ impl FloatTraits for f64 {
+     // Upstream uses -4..=15.
+-    const FIXED_DEC_EXP: RangeInclusive<i32> = -5..=15;
++    const FIXED_DEC_EXP: RangeInclusive<i32> = -6..=20;
+ 
+     const NUM_BITS: i32 = 64;
+     const IMPLICIT_BIT: u64 = 1 << Self::NUM_SIG_BITS;

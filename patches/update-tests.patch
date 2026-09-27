@@ -1,0 +1,161 @@
+# SPDX-FileCopyrightText: Cynthia Rey <cynthia@cynthia.dev>
+# SPDX-License-Identifier: 0BSD
+--- a/zmij-js/Cargo.toml
++++ b/zmij-js/Cargo.toml
+@@ -21,7 +21,7 @@ num_cpus = "1.8"
+ num-integer = "0.1"
+ opt-level = "1"
+ rand = "0.10"
+-ryu = "1"
++ryu-js = "1"
+ 
+ [target.'cfg(not(miri))'.dev-dependencies]
+ criterion = { version = "0.8", default-features = false }
+--- a/zmij-js/benches/bench.rs
++++ b/zmij-js/benches/bench.rs
+@@ -15,8 +15,8 @@ fn do_bench(c: &mut Criterion, group_nam
+             hint::black_box(formatted);
+         });
+     });
+-    group.bench_function("ryu", |b| {
+-        let mut buf = ryu::Buffer::new();
++    group.bench_function("ryu_js", |b| {
++        let mut buf = ryu_js::Buffer::new();
+         b.iter(move || {
+             let float = hint::black_box(float);
+             let formatted = buf.format_finite(float);
+--- a/zmij-js/tests/exhaustive.rs
++++ b/zmij-js/tests/exhaustive.rs
+@@ -29,7 +29,7 @@ fn test_exhaustive() {
+             };
+ 
+             let mut zmij_js_buffer = zmij_js::Buffer::new();
+-            let mut ryu_buffer = ryu::Buffer::new();
++            let mut ryu_js_buffer = ryu_js::Buffer::new();
+             for u in min..=max {
+                 let f = f32::from_bits(u);
+                 if !f.is_finite() {
+@@ -37,13 +37,9 @@ fn test_exhaustive() {
+                 }
+                 let zmij_js = zmij_js_buffer.format_finite(f);
+                 assert_eq!(Ok(f), zmij_js.parse(), "{zmij_js:?}");
+-                let ryu = ryu_buffer.format_finite(f);
+-                let matches = if ryu.contains('e') && !ryu.contains("e-") {
+-                    ryu.split_once('e') == zmij_js.split_once("e+")
+-                } else {
+-                    ryu == zmij_js
+-                };
+-                assert!(matches, "{ryu} != {zmij_js}");
++                let ryu_js = ryu_js_buffer.format_finite(f);
++                let matches = ryu_js == zmij_js;
++                assert!(matches, "{ryu_js} != {zmij_js}");
+             }
+ 
+             let increment = max - min + 1;
+--- a/zmij-js/tests/ryu_comparison.rs
++++ b/zmij-js/tests/ryu_comparison.rs
+@@ -11,7 +11,7 @@ const N: usize = if cfg!(miri) {
+ 
+ #[test]
+ fn ryu_comparison() {
+-    let mut ryu_buffer = ryu::Buffer::new();
++    let mut ryu_js_buffer = ryu_js::Buffer::new();
+     let mut zmij_js_buffer = zmij_js::Buffer::new();
+     let mut rng = SmallRng::try_from_rng(&mut SysRng).unwrap();
+     let mut fail = 0;
+@@ -19,15 +19,11 @@ fn ryu_comparison() {
+     for _ in 0..N {
+         let bits = rng.next_u64();
+         let float = f64::from_bits(bits);
+-        let ryu = ryu_buffer.format(float);
++        let ryu_js = ryu_js_buffer.format(float);
+         let zmij_js = zmij_js_buffer.format(float);
+-        let matches = if ryu.contains('e') && !ryu.contains("e-") {
+-            ryu.split_once('e') == zmij_js.split_once("e+")
+-        } else {
+-            ryu == zmij_js
+-        };
++        let matches = ryu_js == zmij_js;
+         if !matches {
+-            eprintln!("RYU={ryu} ZMIJ-JS={zmij_js}");
++            eprintln!("RYU-JS={ryu_js} ZMIJ-JS={zmij_js}");
+             fail += 1;
+         }
+     }
+--- a/zmij-js/tests/test.rs
++++ b/zmij-js/tests/test.rs
+@@ -35,7 +35,7 @@ mod dtoa_test {
+             let bits = exp << 52;
+             let value = f64::from_bits(bits);
+ 
+-            assert_eq!(dtoa(value), ryu::Buffer::new().format(value));
++            assert_eq!(dtoa(value), ryu_js::Buffer::new().format(value));
+         }
+     }
+ 
+@@ -45,24 +45,25 @@ mod dtoa_test {
+             let bits = (exp << 52) | 1;
+             let value = f64::from_bits(bits);
+ 
+-            assert_eq!(dtoa(value), ryu::Buffer::new().format(value));
++            assert_eq!(dtoa(value), ryu_js::Buffer::new().format(value));
+         }
+     }
+ 
+     #[test]
+     fn small_int() {
+-        assert_eq!(dtoa(1.0), "1.0");
++        assert_eq!(dtoa(1.0), "1");
+     }
+ 
+     #[test]
+     fn zero() {
+-        assert_eq!(dtoa(0.0), "0.0");
+-        assert_eq!(dtoa(-0.0), "-0.0");
++        assert_eq!(dtoa(0.0), "0");
++        assert_eq!(dtoa(-0.0), "0");
+     }
+ 
+     #[test]
+     fn inf() {
+-        assert_eq!(dtoa(f64::INFINITY), "inf");
++        assert_eq!(dtoa(f64::INFINITY), "Infinity");
++        assert_eq!(dtoa(f64::NEG_INFINITY), "-Infinity");
+     }
+ 
+     #[test]
+@@ -103,10 +104,10 @@ mod dtoa_test {
+ 
+     #[test]
+     fn fixed_with_zeros() {
+-        assert_eq!(dtoa(43210.0), "43210.0");
++        assert_eq!(dtoa(43210.0), "43210");
+         assert_eq!(dtoa(43210.1), "43210.1");
+-        assert_eq!(dtoa(10000.0), "10000.0");
+-        assert_eq!(dtoa(-5942736479622170.0), "-5942736479622170.0");
++        assert_eq!(dtoa(10000.0), "10000");
++        assert_eq!(dtoa(-5942736479622170.0), "-5942736479622170");
+     }
+ 
+     #[test]
+@@ -120,16 +121,16 @@ mod ftoa_test {
+ 
+     #[test]
+     fn fixed_with_zeros() {
+-        assert_eq!(ftoa(43210.0), "43210.0");
++        assert_eq!(ftoa(43210.0), "43210");
+         assert_eq!(ftoa(43210.1), "43210.1");
+-        assert_eq!(ftoa(10000.0), "10000.0");
++        assert_eq!(ftoa(10000.0), "10000");
+     }
+ 
+     #[test]
+     fn normal() {
+         assert_eq!(ftoa(6.62607e-34), "6.62607e-34");
+-        assert_eq!(ftoa(1.342178e+08), "134217800.0");
+-        assert_eq!(ftoa(1.3421781e+08), "134217810.0");
++        assert_eq!(ftoa(1.342178e+08), "134217800");
++        assert_eq!(ftoa(1.3421781e+08), "134217810");
+     }
+ 
+     #[test]

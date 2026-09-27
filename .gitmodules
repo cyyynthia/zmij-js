@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: Cynthia Rey <cynthia@cynthia.dev>
+# SPDX-License-Identifier: 0BSD
+
+[submodule "zmij"]
+	path = zmij
+	url = https://github.com/dtolnay/zmij

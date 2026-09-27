@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: Cynthia Rey <cynthia@cynthia.dev>
+# SPDX-License-Identifier: 0BSD
+
+* text=auto eol=lf
+
+*.md      text diff=markdown
+
+# Linguist-specific
+*.md                 linguist-documentation linguist-language=Markdown
+LICENSE              linguist-documentation

@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: Cynthia Rey <cynthia@cynthia.dev>
+# SPDX-License-Identifier: 0BSD
+--- a/zmij-js/src/lib.rs
++++ b/zmij-js/src/lib.rs
+@@ -1520,6 +1520,13 @@ where
+     let bin_exp = Float::get_exp(bits); // binary exponent
+     let bin_sig = Float::get_sig(bits); // binary significand
+ 
++    if bin_exp == 0 && bin_sig == Float::SigType::from(0) {
++        return unsafe {
++            *buffer = b'0';
++            buffer.add(1)
++        };
++    }
++
+     unsafe {
+         *buffer = b'-';
+     }
+@@ -1541,14 +1548,6 @@ where
+ 
+     let mut dec;
+     if bin_exp == 0 {
+-        if bin_sig == Float::SigType::from(0) {
+-            return unsafe {
+-                *buffer = b'0';
+-                *buffer.add(1) = b'.';
+-                *buffer.add(2) = b'0';
+-                buffer.add(3)
+-            };
+-        }
+         dec = to_decimal::<Float, Float::SigType>(bin_sig, 1, true, d);
+         let mut dec_sig =
+             dec.sig * 10 + (-i64::from(dec.has_last_digit) & i64::from(dec.last_digit));
+@@ -1629,9 +1628,8 @@ where
+             // 1234e7 -> 12340000000.0
+             return unsafe {
+                 ptr::copy(buffer.add(1), buffer, length);
+-                ptr::write_bytes(buffer.add(length), b'0', dec_exp as usize + 3 - length);
+-                *buffer.add(dec_exp as usize + 1) = b'.';
+-                buffer.add(dec_exp as usize + 3)
++                ptr::write_bytes(buffer.add(length), b'0', dec_exp as usize + 1 - length);
++                buffer.add(dec_exp as usize + 1)
+             };
+         } else if 0 <= dec_exp {
+             // 1234e-2 -> 12.34

@@ -1,0 +1,315 @@
+# SPDX-FileCopyrightText: Cynthia Rey <cynthia@cynthia.dev>
+# SPDX-License-Identifier: 0BSD
+--- a/zmij-js/Cargo.toml
++++ b/zmij-js/Cargo.toml
+@@ -1,15 +1,15 @@
+ [package]
+-name = "zmij"
+-version = "1.0.23"
+-authors = ["David Tolnay <dtolnay@gmail.com>"]
++name = "zmij-js"
++version = "1.0.0"  ## Version policy: upstream's `<major>.<minor>`; <patch> bumped for each release of the patched lib
++authors = ["David Tolnay <dtolnay@gmail.com>", "Cynthia Rey <cynthia@cynthia.dev>"]
+ categories = ["value-formatting", "no-std", "no-std::no-alloc"]
+-description = "A double-to-string conversion algorithm based on Schubfach and xjb"
+-documentation = "https://docs.rs/zmij"
++description = "A double-to-string conversion algorithm based on Schubfach and xjb -- modified for ECMA-262 compliance"
++documentation = "https://docs.rs/zmij-js"
+ edition = "2021"
+ exclude = ["*.png"]
+ keywords = ["float"]
+ license = "MIT"
+-repository = "https://github.com/dtolnay/zmij"
++repository = "https://github.com/cyyynthia/zmij-js"
+ rust-version = "1.71"
+ 
+ [dependencies]
+--- a/zmij-js/README.md
++++ b/zmij-js/README.md
+@@ -1,9 +1,15 @@
+-# Żmij
++# Żmij -- ECMA Edition
+ 
+-[<img alt="github" src="https://img.shields.io/badge/github-dtolnay/zmij-8da0cb?style=for-the-badge&labelColor=555555&logo=github" height="20">](https://github.com/dtolnay/zmij)
+-[<img alt="crates.io" src="https://img.shields.io/crates/v/zmij.svg?style=for-the-badge&color=fc8d62&logo=rust" height="20">](https://crates.io/crates/zmij)
+-[<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-zmij-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs" height="20">](https://docs.rs/zmij)
+-[<img alt="build status" src="https://img.shields.io/github/actions/workflow/status/dtolnay/zmij/ci.yml?branch=master&style=for-the-badge" height="20">](https://github.com/dtolnay/zmij/actions?query=branch%3Amaster)
++[<img alt="github" src="https://img.shields.io/badge/github-cyyynthia/zmij-js-9e315e?style=flat-square&logo=github">](https://github.com/cyyynthia/zmij-js)
++[<img alt="crates.io" src="https://img.shields.io/crates/v/zmij-js.svg?style=flat-square&color=d23c00&logo=rust">](https://crates.io/crates/zmij-js)
++[<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-zmij-js-319e7c?style=flat-square&logo=docs.rs">](https://docs.rs/zmij-js)
++[<img alt="build status" src="https://img.shields.io/github/actions/workflow/status/cyyynthia/zmij-js/ci.yaml?branch=mistress&style=flat-square">](https://github.com/cyyynthia/zmij-js/actions?query=branch%3Amistress)
++
++Patched version of David Tolnay's [Rust port of Żmij](https://github.com/dtolnay/zmij), which conforms to [ECMA-262](https://tc39.es/ecma262)'s [`Number::toString`](https://tc39.es/ecma262/#sec-numeric-types-number-tostring) algorithm.
++
++Original README below.
++
++---
+ 
+ Pure Rust implementation of Żmij, an algorithm to quickly convert floating point
+ numbers to decimal strings.
+@@ -17,7 +23,7 @@ implementation in C++, [https://github.c
+ 
+ ```rust
+ fn main() {
+-    let mut buffer = zmij::Buffer::new();
++    let mut buffer = zmij_js::Buffer::new();
+     let printed = buffer.format(1.234);
+     assert_eq!(printed, "1.234");
+ }
+@@ -28,7 +34,7 @@ fn main() {
+ The [dtoa-benchmark] compares this library and other Rust floating point
+ formatting implementations across a range of precisions. The vertical axis in
+ this chart shows nanoseconds taken by a single execution of
+-`zmij::Buffer::new().format_finite(value)` so a lower result indicates a faster
++`zmij_js::Buffer::new().format_finite(value)` so a lower result indicates a faster
+ library.
+ 
+ [dtoa-benchmark]: https://github.com/dtolnay/dtoa-benchmark
+--- a/zmij-js/src/lib.rs
++++ b/zmij-js/src/lib.rs
+@@ -1,26 +1,31 @@
+-//! [![github]](https://github.com/dtolnay/zmij)&ensp;[![crates-io]](https://crates.io/crates/zmij)&ensp;[![docs-rs]](https://docs.rs/zmij)
++//! [![github]](https://github.com/cyyynthia/zmij-js)&ensp;[![crates-io]](https://crates.io/crates/zmij-js)&ensp;[![docs-rs]](https://docs.rs/zmij-js)
+ //!
+-//! [github]: https://img.shields.io/badge/github-8da0cb?style=for-the-badge&labelColor=555555&logo=github
+-//! [crates-io]: https://img.shields.io/badge/crates.io-fc8d62?style=for-the-badge&labelColor=555555&logo=rust
+-//! [docs-rs]: https://img.shields.io/badge/docs.rs-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs
++//! [github]: https://img.shields.io/badge/github-9e315e?style=for-the-badge&labelColor=555555&logo=github
++//! [crates-io]: https://img.shields.io/badge/crates.io-d23c00?style=for-the-badge&labelColor=555555&logo=rust
++//! [docs-rs]: https://img.shields.io/badge/docs.rs-319e7c?style=for-the-badge&labelColor=555555&logo=docs.rs
+ //!
+ //! <br>
+ //!
+ //! A double-to-string conversion algorithm based on [Schubfach] and [yy].
+ //!
+-//! This Rust implementation is a line-by-line port of Victor Zverovich's
++//! This Rust implementation is a patched version of [zmij] that is compliant with [ECMA-262]'s [`Number::toString`]
++//! algorithm. The original crate by David Tolnay is a line-by-line port of Victor Zverovich's
+ //! implementation in C++, <https://github.com/vitaut/zmij>.
+ //!
+ //! [Schubfach]: https://fmt.dev/papers/Schubfach4.pdf
+ //! [yy]: https://github.com/ibireme/c_numconv_benchmark/blob/master/vendor/yy_double/yy_double.c
+ //!
++//! [zmij]: https://github.com/dtolnay/zmij
++//! [ECMA-262]: https://tc39.es/ecma262
++//! [`Number::toString`]: https://tc39.es/ecma262/#sec-numeric-types-number-tostring
++//!
+ //! <br>
+ //!
+ //! # Example
+ //!
+ //! ```
+ //! fn main() {
+-//!     let mut buffer = zmij::Buffer::new();
++//!     let mut buffer = zmij_js::Buffer::new();
+ //!     let printed = buffer.format(1.234);
+ //!     assert_eq!(printed, "1.234");
+ //! }
+@@ -33,7 +38,7 @@
+ //! The [dtoa-benchmark] compares this library and other Rust floating point
+ //! formatting implementations across a range of precisions. The vertical axis
+ //! in this chart shows nanoseconds taken by a single execution of
+-//! `zmij::Buffer::new().format_finite(value)` so a lower result indicates a
++//! `zmij_js::Buffer::new().format_finite(value)` so a lower result indicates a
+ //! faster library.
+ //!
+ //! [dtoa-benchmark]: https://github.com/dtolnay/dtoa-benchmark
+@@ -41,7 +46,7 @@
+ //! ![performance](https://raw.githubusercontent.com/dtolnay/zmij/master/dtoa-benchmark.png)
+ 
+ #![no_std]
+-#![doc(html_root_url = "https://docs.rs/zmij/1.0.23")]
++#![doc(html_root_url = "https://docs.rs/zmij-js/1.0.0")]
+ #![deny(unsafe_op_in_unsafe_fn)]
+ #![allow(non_camel_case_types, non_snake_case)]
+ #![allow(
+@@ -1707,7 +1712,7 @@ where
+ /// ## Example
+ ///
+ /// ```
+-/// let mut buffer = zmij::Buffer::new();
++/// let mut buffer = zmij_js::Buffer::new();
+ /// let printed = buffer.format_finite(1.234);
+ /// assert_eq!(printed, "1.234");
+ /// ```
+@@ -1763,7 +1768,7 @@ impl Buffer {
+     #[cfg_attr(feature = "no-panic", no_panic)]
+     pub fn format_finite<F: Float>(&mut self, f: F) -> &str {
+         unsafe {
+-            let end = f.write_to_zmij_buffer(self.bytes.as_mut_ptr().cast::<u8>());
++            let end = f.write_to_zmij_js_buffer(self.bytes.as_mut_ptr().cast::<u8>());
+             let len = end.offset_from(self.bytes.as_ptr().cast::<u8>()) as usize;
+             let slice = slice::from_raw_parts(self.bytes.as_ptr().cast::<u8>(), len);
+             str::from_utf8_unchecked(slice)
+@@ -1772,7 +1777,7 @@ impl Buffer {
+ }
+ 
+ /// A floating point number, f32 or f64, that can be written into a
+-/// [`zmij::Buffer`][Buffer].
++/// [`zmij_js::Buffer`][Buffer].
+ ///
+ /// This trait is sealed and cannot be implemented for types outside of the
+ /// `zmij` crate.
+@@ -1786,7 +1791,7 @@ mod private {
+     pub trait Sealed: crate::traits::Float {
+         fn is_nonfinite(self) -> bool;
+         fn format_nonfinite(self) -> &'static str;
+-        unsafe fn write_to_zmij_buffer(self, buffer: *mut u8) -> *mut u8;
++        unsafe fn write_to_zmij_js_buffer(self, buffer: *mut u8) -> *mut u8;
+     }
+ 
+     impl Sealed for f32 {
+@@ -1813,7 +1818,7 @@ mod private {
+         }
+ 
+         #[cfg_attr(feature = "no-panic", inline)]
+-        unsafe fn write_to_zmij_buffer(self, buffer: *mut u8) -> *mut u8 {
++        unsafe fn write_to_zmij_js_buffer(self, buffer: *mut u8) -> *mut u8 {
+             unsafe { crate::write(self, buffer) }
+         }
+     }
+@@ -1842,7 +1847,7 @@ mod private {
+         }
+ 
+         #[cfg_attr(feature = "no-panic", inline)]
+-        unsafe fn write_to_zmij_buffer(self, buffer: *mut u8) -> *mut u8 {
++        unsafe fn write_to_zmij_js_buffer(self, buffer: *mut u8) -> *mut u8 {
+             unsafe { crate::write(self, buffer) }
+         }
+     }
+--- a/zmij-js/benches/bench.rs
++++ b/zmij-js/benches/bench.rs
+@@ -7,8 +7,8 @@ use std::io::Write;
+ 
+ fn do_bench(c: &mut Criterion, group_name: &str, float: f64) {
+     let mut group = c.benchmark_group(group_name);
+-    group.bench_function("zmij", |b| {
+-        let mut buf = zmij::Buffer::new();
++    group.bench_function("zmij_js", |b| {
++        let mut buf = zmij_js::Buffer::new();
+         b.iter(move || {
+             let float = hint::black_box(float);
+             let formatted = buf.format_finite(float);
+--- a/zmij-js/build.rs
++++ b/zmij-js/build.rs
+@@ -11,12 +11,12 @@ fn main() {
+     if rustc >= 80 {
+         println!("cargo:rustc-check-cfg=cfg(exhaustive)");
+         println!("cargo:rustc-check-cfg=cfg(opt_level, values(\"s\"))");
+-        println!("cargo:rustc-check-cfg=cfg(zmij_no_select_unpredictable)");
++        println!("cargo:rustc-check-cfg=cfg(zmij_js_no_select_unpredictable)");
+     }
+ 
+     if rustc < 88 {
+         // https://doc.rust-lang.org/std/hint/fn.select_unpredictable.html
+-        println!("cargo:rustc-cfg=zmij_no_select_unpredictable");
++        println!("cargo:rustc-cfg=zmij_js_no_select_unpredictable");
+     }
+ 
+     if let Some(opt_level) = env::var_os("OPT_LEVEL") {
+--- a/zmij-js/fuzz/fuzz_targets/fuzz_zmij.rs
++++ b/zmij-js/fuzz/fuzz_targets/fuzz_zmij.rs
+@@ -3,13 +3,13 @@
+ use libfuzzer_sys::fuzz_target;
+ use std::mem;
+ 
+-macro_rules! zmij_test {
++macro_rules! zmij_js_test {
+     ($val:expr, $method:ident) => {
+         match $val {
+             val => {
+-                let mut buffer = zmij::Buffer::new();
++                let mut buffer = zmij_js::Buffer::new();
+                 let string = buffer.$method(val);
+-                assert!(string.len() <= mem::size_of::<zmij::Buffer>());
++                assert!(string.len() <= mem::size_of::<zmij_js::Buffer>());
+                 if val.is_finite() {
+                     assert_eq!(val, string.parse().unwrap());
+                 }
+@@ -21,7 +21,7 @@ macro_rules! zmij_test {
+ fuzz_target!(|inputs: (f64, bool)| {
+     let (input, finite) = inputs;
+     match (input, finite) {
+-        (val, false) => zmij_test!(val, format),
+-        (val, true) => zmij_test!(val, format_finite),
++        (val, false) => zmij_js_test!(val, format),
++        (val, true) => zmij_js_test!(val, format_finite),
+     }
+ });
+--- a/zmij-js/tests/exhaustive.rs
++++ b/zmij-js/tests/exhaustive.rs
+@@ -28,22 +28,22 @@ fn test_exhaustive() {
+                 min + BATCH_SIZE - 1
+             };
+ 
+-            let mut zmij_buffer = zmij::Buffer::new();
++            let mut zmij_js_buffer = zmij_js::Buffer::new();
+             let mut ryu_buffer = ryu::Buffer::new();
+             for u in min..=max {
+                 let f = f32::from_bits(u);
+                 if !f.is_finite() {
+                     continue;
+                 }
+-                let zmij = zmij_buffer.format_finite(f);
+-                assert_eq!(Ok(f), zmij.parse(), "{zmij:?}");
++                let zmij_js = zmij_js_buffer.format_finite(f);
++                assert_eq!(Ok(f), zmij_js.parse(), "{zmij_js:?}");
+                 let ryu = ryu_buffer.format_finite(f);
+                 let matches = if ryu.contains('e') && !ryu.contains("e-") {
+-                    ryu.split_once('e') == zmij.split_once("e+")
++                    ryu.split_once('e') == zmij_js.split_once("e+")
+                 } else {
+-                    ryu == zmij
++                    ryu == zmij_js
+                 };
+-                assert!(matches, "{ryu} != {zmij}");
++                assert!(matches, "{ryu} != {zmij_js}");
+             }
+ 
+             let increment = max - min + 1;
+--- a/zmij-js/tests/ryu_comparison.rs
++++ b/zmij-js/tests/ryu_comparison.rs
+@@ -12,7 +12,7 @@ const N: usize = if cfg!(miri) {
+ #[test]
+ fn ryu_comparison() {
+     let mut ryu_buffer = ryu::Buffer::new();
+-    let mut zmij_buffer = zmij::Buffer::new();
++    let mut zmij_js_buffer = zmij_js::Buffer::new();
+     let mut rng = SmallRng::try_from_rng(&mut SysRng).unwrap();
+     let mut fail = 0;
+ 
+@@ -20,14 +20,14 @@ fn ryu_comparison() {
+         let bits = rng.next_u64();
+         let float = f64::from_bits(bits);
+         let ryu = ryu_buffer.format(float);
+-        let zmij = zmij_buffer.format(float);
++        let zmij_js = zmij_js_buffer.format(float);
+         let matches = if ryu.contains('e') && !ryu.contains("e-") {
+-            ryu.split_once('e') == zmij.split_once("e+")
++            ryu.split_once('e') == zmij_js.split_once("e+")
+         } else {
+-            ryu == zmij
++            ryu == zmij_js
+         };
+         if !matches {
+-            eprintln!("RYU={ryu} ZMIJ={zmij}");
++            eprintln!("RYU={ryu} ZMIJ-JS={zmij_js}");
+             fail += 1;
+         }
+     }
+--- a/zmij-js/tests/test.rs
++++ b/zmij-js/tests/test.rs
+@@ -1,11 +1,11 @@
+ #![allow(clippy::float_cmp, clippy::unreadable_literal)]
+ 
+ fn dtoa(value: f64) -> String {
+-    zmij::Buffer::new().format(value).to_owned()
++    zmij_js::Buffer::new().format(value).to_owned()
+ }
+ 
+ fn ftoa(value: f32) -> String {
+-    zmij::Buffer::new().format(value).to_owned()
++    zmij_js::Buffer::new().format(value).to_owned()
+ }
+ 
+ mod dtoa_test {

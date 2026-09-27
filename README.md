@@ -8,6 +8,10 @@ Patched version of https://github.com/dtolnay/zmij which conforms to [ECMA-262]'
 
 Inspired by the existence of Boa's [ryu-js], written as a patch series via [quilt(1)] rather than a soft fork.
 
+## Building
+Run `just make-crate` to generate the patched `zmij-js` crate. Inside the patched crate, tests and benchmarks are
+updated to check against `ryu-js`.
+
 ## License
 The original Żmij by Victor Zverovich and the Rust port by David Tolnay are licensed under the MIT license, which
 applies to this downstream build.

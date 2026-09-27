@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: Cynthia Rey <cynthia@cynthia.dev>
+# SPDX-License-Identifier: 0BSD
+--- a/zmij-js/benches/bench.rs
++++ b/zmij-js/benches/bench.rs
+@@ -23,6 +23,14 @@ fn do_bench(c: &mut Criterion, group_nam
+             hint::black_box(formatted);
+         });
+     });
++    group.bench_function("dragonbox_ecma", |b| {
++        let mut buf = dragonbox_ecma::Buffer::new();
++        b.iter(move || {
++            let float = hint::black_box(float);
++            let formatted = buf.format_finite(float);
++            hint::black_box(formatted);
++        });
++    });
+     group.bench_function("std::fmt", |b| {
+         let mut buf = Vec::with_capacity(20);
+         b.iter(|| {

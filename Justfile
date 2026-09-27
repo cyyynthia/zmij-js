@@ -12,8 +12,9 @@ export QUILT_COLORS       := "diff_hdr=1;32:diff_add=1;34:diff_rem=1;31:diff_hun
 export QUILT_SERIES_ARGS  := "--color=auto"
 export QUILT_PATCHES_ARGS := "--color=auto"
 
+[no-cd]
 [doc("Alias to `quilt`, with the project's settings pre-applied to generate clean diffs.")]
-quilt *args:
+@quilt *args:
 	quilt --quiltrc - {{args}}
 
 copy-src:
@@ -21,12 +22,16 @@ copy-src:
 	rm zmij-js/.git
 
 apply-patches:
-	quilt push
+	quilt push -a
 
 clean:
 	git clean -xdff
 
 make-crate: clean copy-src apply-patches
+
+[working-directory("zmij-js")]
+publish-crate: make-crate
+	cargo test
 
 headers:
 	#!/usr/bin/env bash

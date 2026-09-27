@@ -6,3 +6,4 @@ update-tests.patch
 inf-to-infinity.patch
 format-as-integer-when-no-decimal-part.patch
 widen-range-before-scientific-notation.patch
+bench-add-dragonbox-ecma.patch

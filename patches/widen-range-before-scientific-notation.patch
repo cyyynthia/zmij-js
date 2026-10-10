@@ -2,21 +2,44 @@
 # SPDX-License-Identifier: 0BSD
 --- a/zmij-js/src/lib.rs
 +++ b/zmij-js/src/lib.rs
-@@ -272,7 +272,7 @@ trait FloatTraits: traits::Float {
+@@ -280,7 +280,7 @@ trait FloatTraits: crate::traits::Float
  
  impl FloatTraits for f32 {
      // Upstream uses -4..=6.
 -    const FIXED_DEC_EXP: RangeInclusive<i32> = -6..=12;
 +    const FIXED_DEC_EXP: RangeInclusive<i32> = -6..=20;
  
-     const NUM_BITS: i32 = 32;
      const IMPLICIT_BIT: u32 = 1 << Self::NUM_SIG_BITS;
-@@ -322,7 +322,7 @@ impl FloatTraits for f32 {
+ 
+@@ -339,7 +339,7 @@ impl FloatTraits for f32 {
  
  impl FloatTraits for f64 {
      // Upstream uses -4..=15.
 -    const FIXED_DEC_EXP: RangeInclusive<i32> = -5..=15;
 +    const FIXED_DEC_EXP: RangeInclusive<i32> = -6..=20;
  
-     const NUM_BITS: i32 = 64;
      const IMPLICIT_BIT: u64 = 1 << Self::NUM_SIG_BITS;
+ 
+@@ -1071,8 +1071,8 @@ impl FixedLayoutTable {
+         Self {
+             data: unsafe {
+                 mem::transmute::<
+-                    [MaybeUninit<FixedLayoutTableEntry>; 22],
+-                    [FixedLayoutTableEntry; 22],
++                    [MaybeUninit<FixedLayoutTableEntry>; Self::NUM_ENTRIES as usize],
++                    [FixedLayoutTableEntry; Self::NUM_ENTRIES as usize],
+                 >(data)
+             },
+         }
+@@ -2129,6 +2129,11 @@ where
+             start
+                 .add(8)
+                 .copy_from_nonoverlapping(ptr::addr_of!(d.zeros).cast(), 8);
++
++            // ECMA port: Guess What! :D
++            start
++                .add(16)
++                .copy_from_nonoverlapping(ptr::addr_of!(d.zeros).cast(), 8);
+         }
+ 
+         let last_digit = b'0' + (-i64::from(has_last_digit) & i64::from(dec.last_digit)) as u8;

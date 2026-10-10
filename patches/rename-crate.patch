@@ -8,7 +8,7 @@
 -version = "1.0.23"
 -authors = ["David Tolnay <dtolnay@gmail.com>"]
 +name = "zmij-js"
-+version = "1.0.0"  ## Version policy: upstream's `<major>.<minor>`; <patch> bumped for each release of the patched lib
++version = "1.0.1"  ## Version policy: upstream's `<major>.<minor>`; <patch> bumped for each release of the patched lib
 +authors = ["David Tolnay <dtolnay@gmail.com>", "Cynthia Rey <cynthia@cynthia.dev>"]
  categories = ["value-formatting", "no-std", "no-std::no-alloc"]
 -description = "A double-to-string conversion algorithm based on Schubfach and xjb"
@@ -47,7 +47,7 @@
  
  Pure Rust implementation of Żmij, an algorithm to quickly convert floating point
  numbers to decimal strings.
-@@ -17,7 +23,7 @@ implementation in C++, [https://github.c
+@@ -18,7 +24,7 @@ minor changes.
  
  ```rust
  fn main() {
@@ -56,7 +56,7 @@
      let printed = buffer.format(1.234);
      assert_eq!(printed, "1.234");
  }
-@@ -28,7 +34,7 @@ fn main() {
+@@ -35,7 +41,7 @@ fn main() {
  The [dtoa-benchmark] compares this library and other Rust floating point
  formatting implementations across a range of precisions. The vertical axis in
  this chart shows nanoseconds taken by a single execution of
@@ -119,20 +119,20 @@
  
  #![no_std]
 -#![doc(html_root_url = "https://docs.rs/zmij/1.0.23")]
-+#![doc(html_root_url = "https://docs.rs/zmij-js/1.0.0")]
++#![doc(html_root_url = "https://docs.rs/zmij-js/1.0.1")]
  #![deny(unsafe_op_in_unsafe_fn)]
  #![allow(non_camel_case_types, non_snake_case)]
  #![allow(
-@@ -1707,7 +1712,7 @@ where
+@@ -2263,7 +2268,7 @@ where
  /// ## Example
  ///
  /// ```
 -/// let mut buffer = zmij::Buffer::new();
 +/// let mut buffer = zmij_js::Buffer::new();
- /// let printed = buffer.format_finite(1.234);
+ /// let printed = buffer.format(1.234);
  /// assert_eq!(printed, "1.234");
  /// ```
-@@ -1763,7 +1768,7 @@ impl Buffer {
+@@ -2314,7 +2319,7 @@ impl Buffer {
      #[cfg_attr(feature = "no-panic", no_panic)]
      pub fn format_finite<F: Float>(&mut self, f: F) -> &str {
          unsafe {
@@ -141,7 +141,7 @@
              let len = end.offset_from(self.bytes.as_ptr().cast::<u8>()) as usize;
              let slice = slice::from_raw_parts(self.bytes.as_ptr().cast::<u8>(), len);
              str::from_utf8_unchecked(slice)
-@@ -1772,7 +1777,7 @@ impl Buffer {
+@@ -2323,7 +2328,7 @@ impl Buffer {
  }
  
  /// A floating point number, f32 or f64, that can be written into a
@@ -150,7 +150,7 @@
  ///
  /// This trait is sealed and cannot be implemented for types outside of the
  /// `zmij` crate.
-@@ -1786,7 +1791,7 @@ mod private {
+@@ -2337,7 +2342,7 @@ mod private {
      pub trait Sealed: crate::traits::Float {
          fn is_nonfinite(self) -> bool;
          fn format_nonfinite(self) -> &'static str;
@@ -159,29 +159,29 @@
      }
  
      impl Sealed for f32 {
-@@ -1813,7 +1818,7 @@ mod private {
+@@ -2364,7 +2369,7 @@ mod private {
          }
  
          #[cfg_attr(feature = "no-panic", inline)]
 -        unsafe fn write_to_zmij_buffer(self, buffer: *mut u8) -> *mut u8 {
 +        unsafe fn write_to_zmij_js_buffer(self, buffer: *mut u8) -> *mut u8 {
-             unsafe { crate::write(self, buffer) }
+             unsafe { crate::write(buffer, self) }
          }
      }
-@@ -1842,7 +1847,7 @@ mod private {
+@@ -2393,7 +2398,7 @@ mod private {
          }
  
          #[cfg_attr(feature = "no-panic", inline)]
 -        unsafe fn write_to_zmij_buffer(self, buffer: *mut u8) -> *mut u8 {
 +        unsafe fn write_to_zmij_js_buffer(self, buffer: *mut u8) -> *mut u8 {
-             unsafe { crate::write(self, buffer) }
+             unsafe { crate::write(buffer, self) }
          }
      }
 --- a/zmij-js/benches/bench.rs
 +++ b/zmij-js/benches/bench.rs
-@@ -7,8 +7,8 @@ use std::io::Write;
- 
- fn do_bench(c: &mut Criterion, group_name: &str, float: f64) {
+@@ -9,8 +9,8 @@ where
+     Float: zmij::Float + ryu::Float + std::fmt::Display,
+ {
      let mut group = c.benchmark_group(group_name);
 -    group.bench_function("zmij", |b| {
 -        let mut buf = zmij::Buffer::new();
@@ -250,9 +250,9 @@
                  if !f.is_finite() {
                      continue;
                  }
--                let zmij = zmij_buffer.format_finite(f);
+-                let zmij = zmij_buffer.format(f);
 -                assert_eq!(Ok(f), zmij.parse(), "{zmij:?}");
-+                let zmij_js = zmij_js_buffer.format_finite(f);
++                let zmij_js = zmij_js_buffer.format(f);
 +                assert_eq!(Ok(f), zmij_js.parse(), "{zmij_js:?}");
                  let ryu = ryu_buffer.format_finite(f);
                  let matches = if ryu.contains('e') && !ryu.contains("e-") {

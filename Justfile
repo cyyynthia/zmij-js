@@ -32,6 +32,7 @@ make-crate: clean copy-src apply-patches
 [working-directory("zmij-js")]
 publish-crate: make-crate
 	cargo test
+	cargo publish
 
 headers:
 	#!/usr/bin/env bash

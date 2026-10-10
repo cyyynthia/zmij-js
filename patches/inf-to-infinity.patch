@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: 0BSD
 --- a/zmij-js/src/lib.rs
 +++ b/zmij-js/src/lib.rs
-@@ -129,8 +129,8 @@ use no_panic::no_panic;
+@@ -132,8 +132,8 @@ use no_panic::no_panic;
  
- const BUFFER_SIZE: usize = 24;
+ const BUFFER_SIZE: usize = 34;
  const NAN: &str = "NaN";
 -const INFINITY: &str = "inf";
 -const NEG_INFINITY: &str = "-inf";
@@ -13,19 +13,3 @@
  
  // Declares struct members that must live in memory on ARM64 but are encoded as
  // immediates in the x64 assembly.
-@@ -1736,11 +1736,14 @@ impl Buffer {
-     /// # Special cases
-     ///
-     /// This function formats NaN as the string "NaN", positive infinity as
--    /// "inf", and negative infinity as "-inf" to match std::fmt.
-+    /// "Infinity", and negative infinity as "-Infinity" to match ECMA-262's
-+    /// specification of [`Number::toString`][spec].
-     ///
-     /// If your input is known to be finite, you may get better performance by
-     /// calling the `format_finite` method instead of `format` to avoid the
-     /// checks for special cases.
-+    ///
-+    /// [spec]: https://tc39.es/ecma262/#sec-numeric-types-number-tostring
-     #[cfg_attr(feature = "no-panic", no_panic)]
-     pub fn format<F: Float>(&mut self, f: F) -> &str {
-         if f.is_nonfinite() {

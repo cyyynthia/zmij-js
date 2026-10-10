@@ -2,7 +2,16 @@
 # SPDX-License-Identifier: 0BSD
 --- a/zmij-js/benches/bench.rs
 +++ b/zmij-js/benches/bench.rs
-@@ -23,6 +23,14 @@ fn do_bench(c: &mut Criterion, group_nam
+@@ -6,7 +6,7 @@ use std::io::Write;
+ 
+ fn do_bench<Float>(c: &mut Criterion, group_name: &str, float: Float)
+ where
+-    Float: zmij_js::Float + ryu_js::Float + std::fmt::Display,
++    Float: zmij_js::Float + ryu_js::Float + dragonbox_ecma::Float + std::fmt::Display,
+ {
+     let mut group = c.benchmark_group(group_name);
+     group.bench_function("zmij_js", |b| {
+@@ -25,6 +25,14 @@ where
              hint::black_box(formatted);
          });
      });
@@ -17,3 +26,30 @@
      group.bench_function("std::fmt", |b| {
          let mut buf = Vec::with_capacity(20);
          b.iter(|| {
+@@ -44,11 +52,11 @@ fn bench(c: &mut Criterion) {
+     do_bench(c, "f64[e]", std::f64::consts::E);
+     do_bench(c, "f64[max]", f64::MAX);
+ 
+-    do_bench(c, "f32[0]", 0f32);
+-    do_bench(c, "f32[short]", 0.1234f32);
+-    do_bench(c, "f32[medium]", 0.123456789f32);
+-    do_bench(c, "f32[e]", std::f32::consts::E);
+-    do_bench(c, "f32[max]", f32::MAX);
++    // do_bench(c, "f32[0]", 0f32);
++    // do_bench(c, "f32[short]", 0.1234f32);
++    // do_bench(c, "f32[medium]", 0.123456789f32);
++    // do_bench(c, "f32[e]", std::f32::consts::E);
++    // do_bench(c, "f32[max]", f32::MAX);
+ }
+ 
+ criterion_group!(benches, bench);
+--- a/zmij-js/Cargo.toml
++++ b/zmij-js/Cargo.toml
+@@ -21,6 +21,7 @@ num-integer = "0.1"
+ opt-level = "1"
+ rand = "0.10"
+ ryu-js = "1"
++dragonbox_ecma = "0"
+ 
+ [target.'cfg(not(miri))'.dev-dependencies]
+ criterion = { version = "0.8", default-features = false }
